@@ -1,21 +1,10 @@
 <template>
   <div id="app">
-    <img src="./assets/logo.png">
-    <h1>{{ msg }}</h1>
-    <h2>Essential Links</h2>
-    <ul>
-      <li><a href="https://vuejs.org" target="_blank">Core Docs</a></li>
-      <li><a href="https://forum.vuejs.org" target="_blank">Forum</a></li>
-      <li><a href="https://chat.vuejs.org" target="_blank">Community Chat</a></li>
-      <li><a href="https://twitter.com/vuejs" target="_blank">Twitter</a></li>
-    </ul>
-    <h2>Ecosystem</h2>
-    <ul>
-      <li><a href="http://router.vuejs.org/" target="_blank">vue-router</a></li>
-      <li><a href="http://vuex.vuejs.org/" target="_blank">vuex</a></li>
-      <li><a href="http://vue-loader.vuejs.org/" target="_blank">vue-loader</a></li>
-      <li><a href="https://github.com/vuejs/awesome-vue" target="_blank">awesome-vue</a></li>
-    </ul>
+    <div class="interface">
+      <input type="range" min='-0.2' max='0.2' step='0.01' v-model='green_magenta'>
+      <input type="range" min='-0.2' max='0.2' step='0.01' v-model='yellow_blue'>
+    </div>
+    <div class='container'ref="container"></div>
   </div>
 </template>
 
@@ -24,37 +13,93 @@ export default {
   name: 'app',
   data () {
     return {
-      msg: 'Welcome to Your Vue.js App'
+      green_magenta: 0,
+      yellow_blue: 0,
     }
+  },
+  mounted() {
+    const createREGL = require('regl')
+
+    const regl = createREGL(this.$refs.container);
+
+    navigator.mediaDevices.getUserMedia({video: true, audio: false}).then((stream) => {
+      const video = document.createElement('video')
+      video.src = window.URL.createObjectURL(stream)
+      // document.body.appendChild(video)
+      // video.style.display = 'none'
+      video.addEventListener('loadedmetadata', () => {
+        video.play()
+        const webcam = regl.texture(video)
+        const drawCamFeed = regl({
+          vert: require('./vert'),
+          // frag: require('./pajama-pixels'),
+          // frag: require('./zx-spectrum'),
+          frag: require('./white-balance'),
+
+          context: {
+            resolution: function(context) { return [context.viewportWidth, context.viewportHeight] }
+          },
+        
+          attributes: {
+            position: [
+              -4, 0,
+              4, 4,
+              4, -4
+            ]
+          },
+        
+          uniforms: {
+            webcam,
+            resolution: regl.context('resolution'),
+            green_magenta: function (context, props) {
+              return Number(props.green_magenta);
+            },
+            yellow_blue: function (context, props) {
+              return Number(props.yellow_blue);
+            },
+          },
+        
+          count: 3
+        });
+        regl.frame(() => {
+          regl.clear({
+            color: [0, 0, 0, 1],
+            depth: 1
+          })
+          webcam.subimage(video)
+          drawCamFeed({
+            green_magenta: this.green_magenta,
+            yellow_blue: this.yellow_blue,
+          });
+        })
+      })
+    })
   }
 }
 </script>
 
 <style>
-#app {
-  font-family: 'Avenir', Helvetica, Arial, sans-serif;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-  text-align: center;
-  color: #2c3e50;
-  margin-top: 60px;
-}
-
-h1, h2 {
-  font-weight: normal;
-}
-
-ul {
-  list-style-type: none;
+body {
+  margin: 0;
   padding: 0;
 }
-
-li {
-  display: inline-block;
-  margin: 0 10px;
+#app {
+  font-family: 'Avenir', Helvetica, Arial, sans-serif;
+  text-align: center;
+  margin: 0;
+  padding: 0;
+  position: relative;
+}
+.interface {
+  position: absolute;
+  z-index: 2;
+}
+.container {
+  position: absolute;
+  width: 100vw;
+  height: 100vh;
+  top: 0;
+  left: 0;
 }
 
-a {
-  color: #42b983;
-}
 </style>
