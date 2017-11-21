@@ -6,6 +6,8 @@
       <button @click='capture'>Capture</button>
       <button @click='turnOff'>Turn Off</button>
       <button @click='turnOn'>Turn On</button>
+      <input type="range" min='-0.2' max='0.2' step='0.01' v-model='temperature'>
+      <input type="range" min='-0.2' max='0.2' step='0.01' v-model='tint'>
     </div>
   </div>
 </template>
@@ -23,10 +25,10 @@ export default {
   },
   watch: {
     temperature(val) {
-      Cam.updateProp('temperature', val);
+      Cam.updateUniform('temperature', Number(val));
     },
     tint(val) {
-      Cam.updateProp('tint', val);
+      Cam.updateUniform('tint', Number(val));
     },
   },
   mounted() {

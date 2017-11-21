@@ -5,6 +5,14 @@ const createREGL = require('regl');
  * and capturing a frame from the camera.
  */
 const Camera = {
+  // white balance uniforms
+  // TODO expose interfaces to 
+  // configure which shader to use
+  // and what uniforms to control
+  reglUniforms: {
+    temperature: 0,
+    tint: 0,
+  },
   /**
    * Request video stream,
    * load stream in video element,
@@ -49,8 +57,8 @@ const Camera = {
     const drawCamFeed = this.regl({
       vert: require('./vert'),
       // frag: require('./pajama-pixels'),
-      frag: require('./zx-spectrum'),
-      // frag: require('./white-balance'),
+      // frag: require('./zx-spectrum'),
+      frag: require('./white-balance'),
       // frag: require('./normal-frag'),
       context: {
         resolution: function (context) { return [context.viewportWidth, context.viewportHeight] }
@@ -65,7 +73,12 @@ const Camera = {
       uniforms: {
         webcam,
         resolution: this.regl.context('resolution'),
-        // TODO add temperature and tint
+        temperature: function (context, props) {
+          return props.temperature;
+        },
+        tint: function (context, props) {
+          return props.tint;
+        },
       },
       count: 3,
     });
@@ -75,8 +88,7 @@ const Camera = {
         depth: 1,
       });
       webcam.subimage(this.video);
-      // TODO pipe prop to drawing function
-      drawCamFeed();
+      drawCamFeed(this.reglUniforms);
     });
   },
   /**
@@ -129,11 +141,10 @@ const Camera = {
     // clear regl state and resources
     this.regl.destroy();
   },
-
-  // TODO update regl props
-  updateProp(prop, val) {
-    console.log(prop, val)
-  },
+  updateUniform(prop, val) {
+    if (this.reglUniforms[prop] === undefined) throw new Error(`property ${prop} not found in Camera.reglUniforms`)
+    this.reglUniforms[prop] = val;
+  }
 };
 
 export default Camera;
